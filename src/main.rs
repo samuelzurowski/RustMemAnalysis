@@ -22,16 +22,35 @@ use ptree::{TreeBuilder, print_tree};
 use windows::Win32::{System::{Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ}, Memory::MEMORY_BASIC_INFORMATION}, Foundation::{HANDLE, CloseHandle}};
 use windows::Win32::System::Memory::VirtualQueryEx;
 use ::core::option::Option;
-use std::{io::Result, mem::size_of};
+use std::env;
+
 fn main(){
-    let pid = 1728;
+    let args: Vec<String> = env::args().collect();
+
+    let mut shouldAbort = false;
+    let pid = args[1].parse::<u32>().unwrap_or_else(| error | {
+        shouldAbort = true;
+        eprintln!("Invalid ProcessID: {:?}", error.kind());
+        0
+    });
+
+    if shouldAbort { 
+        return;
+    }
+
 
     let handle = unsafe {
         OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid)
     };
 
-    let handle = handle.unwrap();
-    if handle.is_invalid() { return; }
+    let handle = handle.unwrap_or_else(|error| {
+        shouldAbort = true;
+        eprintln!("Error Opening Handle Error: {} {}", error.code(), error.message());
+        // shouldAbort = true;
+        HANDLE::default()
+    });
+
+    if handle.is_invalid() || shouldAbort { return; }
 
     const MEM_SIZE: usize = std::mem::size_of::<MEMORY_BASIC_INFORMATION>();
 
@@ -62,15 +81,6 @@ fn main(){
 
     // Build a tree using a TreeBuilder
     let mut tree = TreeBuilder::new("Virtual Memory Regions".to_string());
-    // .begin_child("branch".to_string())
-    //     .add_empty_child("leaf".to_string())
-    // .end_child()
-    // .add_empty_child("empty branch".to_string())
-    // .build();
-
-    // Print out the tree using default formatting
-    // print_tree(&tree);
-
 
     let mut base_addr: usize = 0;
     for basic in basic_info_vec {
