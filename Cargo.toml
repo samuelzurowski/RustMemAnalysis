@@ -1,0 +1,22 @@
+[package]
+name = "mem_analysis"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[target.'cfg(windows)'.dependencies]
+ptree = "0.4.0"
+winapi = { version = "0.3.9", features = ["everything", "winnt"] }
+
+[dependencies.windows]
+version = "0.43.0"
+features = [
+    "Data_Xml_Dom",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Memory",
+]
+
