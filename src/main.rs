@@ -27,6 +27,11 @@ use std::env;
 fn main(){
     let args: Vec<String> = env::args().collect();
 
+    if args.len() == 1 {
+        println!("Please use: {} <pid>", args[0]);
+        return;
+    }
+
     let mut shouldAbort = false;
     let pid = args[1].parse::<u32>().unwrap_or_else(| error | {
         shouldAbort = true;
@@ -45,7 +50,13 @@ fn main(){
 
     let handle = handle.unwrap_or_else(|error| {
         shouldAbort = true;
-        eprintln!("Error Opening Handle Error: {} {}", error.code(), error.message());
+
+        let code = error.code();
+
+        if code.to_string() == "0x80070057" {
+            eprintln!("You can't access that process or it does not exist.")
+        }
+        eprintln!("Error Opening Handle Error: {} {}", code, error.message());
         // shouldAbort = true;
         HANDLE::default()
     });
