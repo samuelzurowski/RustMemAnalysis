@@ -105,7 +105,7 @@ fn main(){
     let m = print_tree(&tree.build());
     match m {
         Ok(_) => {},
-        Err(_) => eprint!("Sadgeln"),
+        Err(_) => eprint!("Should not reach this"),
     }
 
 }
