@@ -27,41 +27,20 @@ use std::env;
 fn main(){
     let args: Vec<String> = env::args().collect();
 
-    if args.len() == 1 {
-        println!("Please use: {} <pid>", args[0]);
-        return;
+    if args.len() < 2 {
+        println!("Please use: {} <pid>", args[0]); 
+        std::process::abort();
     }
 
-    let mut shouldAbort = false;
-    let pid = args[1].parse::<u32>().unwrap_or_else(| error | {
-        shouldAbort = true;
-        eprintln!("Invalid ProcessID: {:?}", error.kind());
-        0
-    });
 
-    if shouldAbort { 
-        return;
-    }
+    let pid: u32 = args[1].parse::<u32>().expect("Invalid Process ID.");
 
 
     let handle = unsafe {
         OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid)
     };
 
-    let handle = handle.unwrap_or_else(|error| {
-        shouldAbort = true;
-
-        let code = error.code();
-
-        if code.to_string() == "0x80070057" {
-            eprintln!("You can't access that process or it does not exist.")
-        }
-        eprintln!("Error Opening Handle Error: {} {}", code, error.message());
-        // shouldAbort = true;
-        HANDLE::default()
-    });
-
-    if handle.is_invalid() || shouldAbort { return; }
+    let handle = handle.expect("Handle was not opened.");
 
     const MEM_SIZE: usize = std::mem::size_of::<MEMORY_BASIC_INFORMATION>();
 
@@ -95,28 +74,23 @@ fn main(){
 
     let mut base_addr: usize = 0;
     for basic in basic_info_vec {
+        
+
         let info_addr = basic.AllocationBase as usize;
-        if base_addr != info_addr {
 
+        if info_addr != 00000000 {
+            tree.add_empty_child(format!("{:08x}", info_addr));
+        } 
 
-            if info_addr == 0 {
-                continue;
-            }
-
-            base_addr = info_addr;
-    
-            tree.add_empty_child(format!("{:08x}", base_addr));
-            // format!("{:08x}", base_addr);
-        }
         let range = unsafe { basic.BaseAddress.add(basic.RegionSize as usize) } as usize;
+
+        if basic.BaseAddress as usize == 00000000 {
+            continue;
+        }
         
         tree.add_empty_child(format!("\t{:08x}-{:08x}", basic.BaseAddress as usize, range));
     }
 
-    let m = print_tree(&tree.build());
-    match m {
-        Ok(_) => {},
-        Err(_) => eprint!("Should not reach this"),
-    }
+    print_tree(&tree.build()).expect("Error");
 
 }
